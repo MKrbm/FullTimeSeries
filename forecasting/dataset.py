@@ -1,7 +1,8 @@
 from __future__ import annotations
 import torch
+from contextlib import contextmanager
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from typing import List, Optional, Tuple, Union
 
 
@@ -36,12 +37,12 @@ class TimeSeries(Dataset):
         self.prediction_length = prediction_length
         self._return_index = return_index
 
-    def get_index(self, return_index: bool) -> TimeSeries:
-        if isinstance(return_index, bool):
-            self._return_index = return_index
-            return self
-        else:
-            raise ValueError("return_index must be a boolean")
+    # def get_index(self, return_index: bool) -> TimeSeries:
+    #     if isinstance(return_index, bool):
+    #         self._return_index = return_index
+    #         return self
+    #     else:
+    #         raise ValueError("return_index must be a boolean")
 
     def __len__(self):
         return self.n_samples - (self.window_length - 1) - self.prediction_length
@@ -62,3 +63,21 @@ class TimeSeries(Dataset):
             return x, y, x_index, y_index
         else:
             return x, y
+
+
+class TimeSeriesDataLoader(DataLoader):
+    def __init__(self, dataset: TimeSeries, *args, **kwargs):
+        super(TimeSeriesDataLoader, self).__init__(dataset, *args, **kwargs)
+        if not isinstance(dataset, TimeSeries):
+            raise ValueError("First argument must be TimeSeries")
+
+    @contextmanager
+    def get_index(self):
+        """
+        Context manager to enable index returning in the TimeSeries dataset.
+        """
+        self.dataset._return_index = True
+        try:
+            yield
+        finally:
+            self.dataset._return_index = False
