@@ -29,7 +29,6 @@ class DeepAnT(pl.LightningModule):
         self.pool_size = pool_size
         self.stride = stride
         self.criterion = nn.functional.mse_loss
-        self.save_hyperparameters()
 
         self.conv1 = nn.Conv1d(
             in_channels=in_channels,
@@ -48,6 +47,7 @@ class DeepAnT(pl.LightningModule):
         # Ensure this calculation is correct for your architecture
         self.dim1 = int(0.5*(0.5*(window-1)-1)) * filter2_size
         self.lin1 = nn.Linear(self.dim1, in_channels*pred_window)
+        self.save_hyperparameters()
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -62,7 +62,7 @@ class DeepAnT(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         X, y = batch
         y_hat = self(X)
-        loss = F.mse_loss(y_hat, y)
+        loss = self.criterion(y_hat, y, reduction="mean")
         metrics = {'train_loss': loss, "#batches": self.trainer.num_training_batches}
         self.log_dict(metrics, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -70,11 +70,11 @@ class DeepAnT(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         X, y = batch
         y_hat = self(X)
-        anomaly_score = nn.functional.mse_loss(
+        anomaly_score = self.criterion(
             y_hat.detach(),
             y.detach(),
-            reduction="none").sum(
-            dim=[1])
+            reduction="none"
+        ).sum(dim=[1])
         return anomaly_score
 
     def configure_optimizers(self):
