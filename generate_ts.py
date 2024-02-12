@@ -34,4 +34,4 @@ for noise_index in anomaly_indices_noise:
     df.iloc[noise_index:noise_index+200, np.random.randint(0, n_variables)] *= np.random.normal(1.5, 0.5, 200)
 
 print(df.values.shape)
-df.to_csv('synthetic_ts.csv')
+df.to_csv('save_csv/synthetic_ts.csv')

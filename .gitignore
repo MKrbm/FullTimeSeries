@@ -1,4 +1,4 @@
 save_csv/
 __pycache__
 logs/
-
+.ipynb_checkpoints
