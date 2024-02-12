@@ -28,6 +28,7 @@ class DeepAnT(pl.LightningModule):
         self.kernel_size = kernel_size
         self.pool_size = pool_size
         self.stride = stride
+        self.criterion = nn.functional.mse_loss
         self.save_hyperparameters()
 
         self.conv1 = nn.Conv1d(
