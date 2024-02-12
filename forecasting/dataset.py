@@ -29,6 +29,7 @@ class TimeSeries(Dataset):
                  input_dims: Optional[List[int]] = None,
                  output_dims: Optional[List[int]] = None,
                  feature_first: bool = False,
+                 step: int = 1,
                  ):
         self.input_dims = input_dims or list(range(X.shape[1]))
         self.output_dims = output_dims or list(range(X.shape[1]))
@@ -41,11 +42,12 @@ class TimeSeries(Dataset):
         self.window_length = window_length
         self.prediction_length = prediction_length
         self._return_index = False
+        self.step = step
         if feature_first:
             self.X = self.X.transpose(1, 0)
 
     def __len__(self):
-        return self.n_samples - (self.window_length - 1) - self.prediction_length
+        return self.n_samples - (self.window_length*self.step - 1) - self.prediction_length
 
     def __getitem__(self,
                     index) -> Union[Tuple[torch.Tensor,
@@ -54,15 +56,16 @@ class TimeSeries(Dataset):
                                           torch.Tensor],
                                     Tuple[torch.Tensor,
                                           torch.Tensor]]:
-        end_idx = index+self.window_length
+        end_idx = index+self.window_length*self.step
+        pred_idx = end_idx+self.prediction_length*self.step
         if self.feature_first:
-            x = self.X[:, index:end_idx]
+            x = self.X[:, index:end_idx:self.step]
         else:
-            x = self.X[index:end_idx, :]
-        y = self.Y[end_idx:end_idx+self.prediction_length]
+            x = self.X[index:end_idx:self.step, :]
+        y = self.Y[end_idx:pred_idx:self.step]
         if self._return_index:
-            x_index = self.index[index:end_idx]
-            y_index = self.index[end_idx:end_idx+self.prediction_length]
+            x_index = self.index[index:end_idx:self.step]
+            y_index = self.index[end_idx:pred_idx:self.step]
             return x, y, x_index, y_index
         else:
             return x, y

@@ -29,17 +29,18 @@ class TimeSeries(Dataset):
                  input_dims: Optional[List[int]] = None,
                  output_dims: Optional[List[int]] = None,
                  feature_first: bool = False,
+                 step: int = 1,
                  ):
+        self.window_length = window_length
+        self._return_index = False
         self.input_dims = input_dims or list(range(X.shape[1]))
         self.output_dims = output_dims or list(range(X.shape[1]))
         self.feature_first = feature_first
         torch_X = torch.from_numpy(X).float()
         self.X = torch_X[:, self.input_dims]
+        self.Y = torch_X[:, self.output_dims]
         self.n_samples = self.X.shape[0]
         self.index = torch.arange(X.shape[0])
-        self.Y = torch_X[:, self.output_dims]
-        self.window_length = window_length
-        self._return_index = False
         if feature_first:
             self.X = self.X.transpose(1, 0)
             self.Y = self.Y.transpose(1, 0)
