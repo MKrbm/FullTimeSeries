@@ -1,1 +1,1 @@
-from .model import DeepAnT
+from .model import LSTMAD
