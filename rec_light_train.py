@@ -13,7 +13,7 @@ from seqad.dataset import TimeSeriesDataLoader
 logger = logging.getLogger(__name__)
 window = 100
 batch_size = 45
-df = pd.read_csv('save_csv/synthetic_ts.csv', index_col=0)
+df = pd.read_csv('save_csv/synthetic_ts.csv', index_col=0).iloc[:1000]
 X = df.values
 X = (X - X.mean(axis=0)) / X.std(axis=0)
 n_features = X.shape[1]
@@ -45,6 +45,7 @@ with test_dl.get_index():
 
 anomaly_score = torch.cat(anomaly_score_list, dim=0).numpy()
 pred_index = torch.cat(result_index, dim=0).numpy()
+print(pred_index.shape)
 anomaly_df = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
 anomaly_df.iloc[pred_index[:, 0]] = anomaly_score
 anomaly_df.to_csv('save_csv/autoencoder/anomaly_score.csv')

@@ -50,8 +50,8 @@ class ForecastingTimeSeries(BaseTimeSeries):
         else:
             x = self.X[index:end_idx:self.step, :]
         if self._return_index:
-            x_index = self.index[index:end_idx:self.step]
-            y_index = self.index[end_idx:pred_idx:self.step]
+            x_index = np.array([index,end_idx,self.step])
+            y_index = np.array([end_idx,pred_idx,self.step])
             return x, y, x_index, y_index
         else:
             return x, y

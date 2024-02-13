@@ -1,6 +1,7 @@
 from __future__ import annotations
 import torch
 import logging
+import numpy as np
 from typing import List, Optional, Tuple, Union, Callable, Dict
 from ..dataset import BaseTimeSeries
 logger = logging.getLogger(__name__)
@@ -44,8 +45,8 @@ class ReconstructionTimeSeries(BaseTimeSeries):
             x = self.X[index:end_idx, :]
             y = self.Y[index:end_idx, :]
         if self._return_index:
-            x_index = self.index[index:end_idx]
-            y_index = self.index[index:end_idx]
+            x_index = np.array([index, end_idx, self.step])
+            y_index = np.array([index, end_idx, self.step])
             return x, y, x_index, y_index
         else:
             return x, y
