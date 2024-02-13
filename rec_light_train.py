@@ -7,19 +7,21 @@ import numpy as np
 import time
 import logging
 
-from reconstuction.autoencoder import Autoencoder
-from reconstuction.dataset import TimeSeries, TimeSeriesDataLoader, get_predict_index
+from seqad.reconstuction.autoencoder import Autoencoder
+from seqad.reconstuction import ReconstructionTimeSeries, ReconstructionModule
+from seqad.dataset import TimeSeriesDataLoader
 logger = logging.getLogger(__name__)
 window = 100
 batch_size = 45
-df = pd.read_csv('save_csv/synthetic_ts.csv', index_col=0).iloc[:1000]
+df = pd.read_csv('save_csv/synthetic_ts.csv', index_col=0)
 X = df.values
 X = (X - X.mean(axis=0)) / X.std(axis=0)
 n_features = X.shape[1]
 
-ts_data = TimeSeries(X, window_length=window, feature_first=False)
+ts_data = ReconstructionTimeSeries(X, window_length=window, feature_first=False)
 train_dl = TimeSeriesDataLoader(ts_data, batch_size=batch_size, shuffle=True)
-model = Autoencoder(input_size=n_features, latent_dim=32, lr=0.005)
+base_model = Autoencoder(input_size=n_features, latent_dim=32)
+model = ReconstructionModule(base_model, lr=0.0001)
 
 trainer = Trainer(
     max_epochs=10,
@@ -31,23 +33,18 @@ trainer = Trainer(
 
 trainer.fit(model, train_dataloaders=train_dl)
 
-# n: get anomaly score
 test_dl = TimeSeriesDataLoader(ts_data, batch_size=batch_size, shuffle=False)
-anomaly_score_list = trainer.predict(model, test_dl)
+with test_dl.get_index():
+    output = trainer.predict(model, test_dl)
+    if isinstance(output, list):
+        anomaly_score_list = [item[1] for item in output]
+        result_index = [item[2] for item in output]
+    else:
+        raise RuntimeError(
+            "The output from the model is expected to be a list of tuple of torch.Tensor")
 
-if not isinstance(anomaly_score_list, list) or \
-   not all(isinstance(item, torch.Tensor) for item in anomaly_score_list):
-    raise RuntimeError("The anomaly_score_list is expected to be a list of torch.Tensor")
-else:
-    anomaly_score_list = cast(List[torch.Tensor], anomaly_score_list)
-anomaly_score = torch.cat(anomaly_score_list, dim=0)
-
-# n: rescale the anomaly score
-# note the all columns are standardized by the same std
-# anomaly_score = anomaly_score / anomaly_score.std(axis=0)
-
-# # n: measure the time
-pred_index = get_predict_index(test_dl)
+anomaly_score = torch.cat(anomaly_score_list, dim=0).numpy()
+pred_index = torch.cat(result_index, dim=0).numpy()
 anomaly_df = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
-anomaly_df.iloc[pred_index] = anomaly_score.numpy()
-anomaly_df.to_csv('save_csv/anomaly_score.csv')
+anomaly_df.iloc[pred_index[:, 0]] = anomaly_score
+anomaly_df.to_csv('save_csv/autoencoder/anomaly_score.csv')
